@@ -3,12 +3,16 @@ import cv2
 import numpy as np
 import tensorflow as tf
 
-def draw_boxes(img, boxes, class_names, scores, true_labels):
+def draw_boxes(img, boxes, class_names, scores, true_labels, edge=False):
 
+    boxes = np.array(boxes)
     max_boxes = 10
-    min_score = 0.6
+    min_score = 0.4
     raw_boxes = []
     scaled_boxes = []
+
+    if edge:
+        class_names = [x+1 for x in class_names]
 
     for i in range(min(boxes.shape[0], max_boxes)):
         if scores[i] >= min_score and int(class_names[i]) == 1:
@@ -17,6 +21,7 @@ def draw_boxes(img, boxes, class_names, scores, true_labels):
 
             ymin, xmin, ymax, xmax = tuple(boxes[i])
             raw_boxes.append((ymin,xmin,ymax,xmax))
+
             xmin = int(W * xmin)
             ymin = int(H * ymin)
             xmax = int(W * xmax)
@@ -29,7 +34,7 @@ def draw_boxes(img, boxes, class_names, scores, true_labels):
             logging.info('Obtained predictions for frame: {}'.format(mark))
 
             img = cv2.rectangle(img, (xmin, ymin), (xmax, ymax), (0,0,255), 2)
-            img = cv2.putText(img, mark, (xmin, ymin-11), cv2.FONT_HERSHEY_SIMPLEX, 1, (0,0,255), 2, cv2.LINE_AA)
+            img = cv2.putText(img, mark, (xmin, ymin-11), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0,0,255), 1, cv2.LINE_AA)
     
     return img, raw_boxes, scaled_boxes
 

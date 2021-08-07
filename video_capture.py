@@ -72,10 +72,11 @@ logging.info('Detection model successfully loaded')
 
 #cap = cv2.VideoCapture(gstreamer_pipeline(flip_method=2), cv2.CAP_GSTREAMER)
 #cap = cv2.VideoCapture(0)
+f_size = (320,240)
 cap = cv2.VideoCapture('people_street.mp4')
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
-out_detection = cv2.VideoWriter('detection.avi', fourcc, 20.0, (854, 480))
-out_map = cv2.VideoWriter('dmap.avi', fourcc, 20.0, (320, 240))
+out_detection = cv2.VideoWriter('detection.avi', fourcc, 20.0, f_size)
+out_map = cv2.VideoWriter('dmap.avi', fourcc, 20.0, f_size)
 
 #ret,frame = cap.read()
 #cv2.imshow('frame', frame)
@@ -108,7 +109,8 @@ while(True):
     prev_frame_time = new_frame_time
 
     if edge:
-        image = Image.fromarray(frame)
+        det_frame = cv2.resize(frame.copy(), f_size)
+        image = Image.fromarray(det_frame)
         _, scale = common.set_resized_input(
             interpreter, image.size, lambda size: image.resize(size, Image.ANTIALIAS))
         start = time.perf_counter()
@@ -120,18 +122,23 @@ while(True):
         class_names = []
         scores = []
         for obj in objs:
-            print(labels.get(obj.id, obj.id))
-            print('  id:    ', obj.id)
-            print('  score: ', obj.score)
-            print('  bbox:  ', obj.bbox)
+            logging.info(labels.get(obj.id, obj.id))
+            logging.info('  id:    {}'.format(obj.id))
+            logging.info('  score: {}'.format(obj.score))
+            logging.info('  bbox:  {}'.format(obj.bbox))
             class_names.append(obj.id)
             scores.append(obj.score)
-            boxes.append(obj.bbox)
+            xmin = obj.bbox[0] / f_size[0]
+            ymin = obj.bbox[1] / f_size[1]
+            xmax = obj.bbox[2] / f_size[0]
+            ymax = obj.bbox[3] / f_size[1]
+             
+            boxes.append([ymin, xmin, ymax, xmax])
         
-        frame, raw_boxes, scaled_boxes = draw_boxes(frame, boxes, class_names, scores, labels)
+        detection, raw_bbox, scaled_bbox = draw_boxes(det_frame, boxes, class_names, scores, labels, edge=True)
 
     else:
-        detection, raw_bbox, scaled_bbox = inference_hub(frame.copy(), model, labels)
+        detection, raw_bbox, scaled_bbox = inference_hub(cv2.resize(frame.copy(), f_size), model, labels)
 
     if calc_depth:
         d_map_show, d_map = depth_est(d_model, frame.copy())
@@ -143,15 +150,15 @@ while(True):
             ymin = int(H * ymin)
             xmax = int(W * xmax)
             ymax = int(H * ymax)
-            #avg_depth = np.mean(d_map[ymin:ymax, xmin:xmax])
-            avg_depth = d_map[int((ymax-ymin)/2), int((xmax-xmin)/2), 0]
+            avg_depth = np.mean(d_map[ymin:ymax, xmin:xmax])
+            #avg_depth = d_map[int((ymax-ymin)/2), int((xmax-xmin)/2), 0]
             ymin, xmin, ymax, xmax = tuple(scaled_bbox[i])
-            if 1/avg_depth > 3:
-                cv2.putText(detection, 'TOO CLOSE', (xmin, ymax-11), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 2, cv2.LINE_AA)
+            if 1/avg_depth > 2.5:
+                cv2.putText(detection, 'TOO CLOSE', (xmin, ymax-6), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0,0,255), 1, cv2.LINE_AA)
         cv2.imshow('depth', d_map_show)
     #detection = cv2.cvtColor(detection, cv2.COLOR_RGB2BGR)
     # Display the resulting frame
-    cv2.putText(detection, 'FPS: {:.2f}'.format(fps), (0, 30), cv2.FONT_HERSHEY_COMPLEX, 1, (0,0,255), 2, cv2.LINE_AA)
+    cv2.putText(detection, 'FPS: {:.2f}'.format(fps), (0, 15), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0,0,255), 1, cv2.LINE_AA)
     cv2.imshow('frame', detection)
     out_detection.write(detection)
     out_map.write(d_map_show)

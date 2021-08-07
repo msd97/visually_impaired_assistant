@@ -2,3 +2,9 @@ kitti.h5
 nyu.h5
 test.png
 tf2_ssd_mobilenet_v2_coco17_ptq_edgetpu.tflite
+ssd_mobilenet_v2_2/
+people_street.mp4
+detection.avi
+dmap.avi
+__pycache__/
+DenseDepth/
