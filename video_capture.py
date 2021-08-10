@@ -70,23 +70,16 @@ if calc_depth:
 
 logging.info('Detection model successfully loaded')
 
-#cap = cv2.VideoCapture(gstreamer_pipeline(flip_method=2), cv2.CAP_GSTREAMER)
-#cap = cv2.VideoCapture(0)
 f_size = (320,240)
 cap = cv2.VideoCapture('people_street.mp4')
 fourcc = cv2.VideoWriter_fourcc(*'XVID')
 out_detection = cv2.VideoWriter('detection.avi', fourcc, 20.0, f_size)
 out_map = cv2.VideoWriter('dmap.avi', fourcc, 20.0, f_size)
 
-#ret,frame = cap.read()
-#cv2.imshow('frame', frame)
-
 logging.info('Video streamer initialized')
 
-# used to record the time when we processed last frame
 prev_frame_time = 0
  
-# used to record the time at which we processed current frame
 new_frame_time = 0
 
 if not edge:
@@ -101,8 +94,6 @@ fps_array = []
 try:  
     while(True):
         
-        # Capture the video frame
-        # by frame
         ret, frame = cap.read()
 
         new_frame_time = time.time()
@@ -154,7 +145,6 @@ try:
                 xmax = int(W * xmax)
                 ymax = int(H * ymax)
                 avg_depth = np.mean(d_map[ymin:ymax, xmin:xmax])
-                #avg_depth = d_map[int((ymax-ymin)/2), int((xmax-xmin)/2), 0]
                 ymin, xmin, ymax, xmax = tuple(scaled_bbox[i])
                 if 1/avg_depth > 2.5:
                     cv2.putText(detection, 'TOO CLOSE', (xmin, ymax-6), cv2.FONT_HERSHEY_COMPLEX, 0.5, (0,0,255), 1, cv2.LINE_AA)
@@ -170,7 +160,7 @@ try:
         # desired button of your choice
         if cv2.waitKey(1) & 0xFF == ord('q'):
             raise AttributeError
-            #break
+
 except AttributeError:
 
     fps_array = np.array(fps_array)
